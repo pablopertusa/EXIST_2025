@@ -34,65 +34,98 @@ class EXISTReader:
         return unionAnnotations
     
 
-    def __init__(self, file, task=1):
-        self.file = file
-        self.task = f"task{task}"
-        mapLabelToId = {"task1": {'NO': 0, 'YES': 1, "AMBIGUOUS": 2},
-                        "task2": {'-': 4, 'JUDGEMENTAL': 0, 'REPORTED': 1, 'DIRECT': 2, 'UNKNOWN': 3, "AMBIGUOUS": 5},
-                        "task3": {'OBJECTIFICATION': 0, 'STEREOTYPING-DOMINANCE': 1, 'MISOGYNY-NON-SEXUAL-VIOLENCE': 2,
-                                  'IDEOLOGICAL-INEQUALITY': 3, 'SEXUAL-VIOLENCE': 4, 'UNKNOWN': 5, '-': 6,
-                                  "AMBIGUOUS": 7}}
+    def __init__(self, file, task=1, is_test=False):
+        self.is_test = is_test
+        if self.is_test:
+            self.file = file
+            self.task = f"task{task}"
+            self.dataset = {"ES":{'id': [], 'text': []},
+                        "EN": {'id': [], 'text': []}
+                        }
 
-        mapIdToLabel = {"task1": {0: 'NO', 1: 'YES', 2: "AMBIGUOUS"},
-                        "task2": {4: '-', 0: 'JUDGEMENTAL', 1: 'REPORTED', 2: 'DIRECT', 3: 'UNKNOWN', 4: "AMBIGUOUS"},
-                        "task3": {0: 'OBJECTIFICATION', 1: 'STEREOTYPING-DOMINANCE', 2: 'MISOGYNY-NON-SEXUAL-VIOLENCE',
-                                  3: 'IDEOLOGICAL-INEQUALITY', 4: 'SEXUAL-VIOLENCE', 5: 'UNKNOWN', 6: '-',
-                                  7: "AMBIGUOUS"}}
-
-        self.dataset = {"ES":{'id': [], 'text': [], 'label1': [], "label2": [], "label3": []},
-                      "EN": {'id': [], 'text': [], 'label1': [], "label2": [], "label3": []}
-                      }
-
-        splits = set()
-        with open(self.file, 'r') as mytrain:
-            entries = json.load(mytrain)
-            for entryid in entries:
-                entry = entries[entryid]
-                #print(entry)
-                
-                split, lang = entry['split'].split("_")
-                splits.add(split)
-
-                self.dataset[lang]['id'].append(entryid)
-                self.dataset[lang]['text'].append(entry["tweet"])
-
-                if f"labels_{self.task}_1" in entry:
+            splits = set()
+            with open(self.file, 'r') as mytrain:
+                entries = json.load(mytrain)
+                for entryid in entries:
+                    entry = entries[entryid]
+                    #print(entry)
                     
-                    label1 = entry[f"labels_{self.task}_1"]
-                    label2 = entry[f"labels_{self.task}_2"]
-                    label3 = entry[f"labels_{self.task}_3"]
+                    split, lang = entry['split'].split("_")
+                    splits.add(split)
 
-                    label1 = self.__hardlabeling1(label1)
-                    label2 = self.__hardlabeling2(label2)
-                    label3 = self.__hardlabeling3(label3)
+                    self.dataset[lang]['id'].append(entryid)
+                    self.dataset[lang]['text'].append(entry["tweet"])
+
+            assert len(splits) == 1
+            split = list(splits)
+            allData= {
+                "id": self.dataset["EN"]["id"] + self.dataset["ES"]["id"],
+                "text": self.dataset["EN"]["text"] + self.dataset["ES"]["text"],
+                "language": ["EN"] * len(self.dataset["EN"]["id"]) + ["ES"] * len(self.dataset["ES"]["id"]),
+
+            }
+
+            self.dataframe = pd.DataFrame(allData, columns=["id", "text", "language"], index=None)
+
+        else:
+            self.file = file
+            self.task = f"task{task}"
+            mapLabelToId = {"task1": {'NO': 0, 'YES': 1, "AMBIGUOUS": 2},
+                            "task2": {'-': 4, 'JUDGEMENTAL': 0, 'REPORTED': 1, 'DIRECT': 2, 'UNKNOWN': 3, "AMBIGUOUS": 5},
+                            "task3": {'OBJECTIFICATION': 0, 'STEREOTYPING-DOMINANCE': 1, 'MISOGYNY-NON-SEXUAL-VIOLENCE': 2,
+                                    'IDEOLOGICAL-INEQUALITY': 3, 'SEXUAL-VIOLENCE': 4, 'UNKNOWN': 5, '-': 6,
+                                    "AMBIGUOUS": 7}}
+
+            mapIdToLabel = {"task1": {0: 'NO', 1: 'YES', 2: "AMBIGUOUS"},
+                            "task2": {4: '-', 0: 'JUDGEMENTAL', 1: 'REPORTED', 2: 'DIRECT', 3: 'UNKNOWN', 4: "AMBIGUOUS"},
+                            "task3": {0: 'OBJECTIFICATION', 1: 'STEREOTYPING-DOMINANCE', 2: 'MISOGYNY-NON-SEXUAL-VIOLENCE',
+                                    3: 'IDEOLOGICAL-INEQUALITY', 4: 'SEXUAL-VIOLENCE', 5: 'UNKNOWN', 6: '-',
+                                    7: "AMBIGUOUS"}}
+
+            self.dataset = {"ES":{'id': [], 'text': [], 'label1': [], "label2": [], "label3": []},
+                        "EN": {'id': [], 'text': [], 'label1': [], "label2": [], "label3": []}
+                        }
+
+            splits = set()
+            with open(self.file, 'r') as mytrain:
+                entries = json.load(mytrain)
+                for entryid in entries:
+                    entry = entries[entryid]
+                    #print(entry)
                     
-                    self.dataset[lang]["label1"].append(label1)
-                    self.dataset[lang]["label2"].append(label2)
-                    self.dataset[lang]["label3"].append(label3)
+                    split, lang = entry['split'].split("_")
+                    splits.add(split)
 
-        assert len(splits) == 1
-        split = list(splits)
-        allData= {
-            "id": self.dataset["EN"]["id"] + self.dataset["ES"]["id"],
-            "text": self.dataset["EN"]["text"] + self.dataset["ES"]["text"],
-            "label1": self.dataset["EN"]["label1"] + self.dataset["ES"]["label1"],
-            "label2": self.dataset["EN"]["label2"] + self.dataset["ES"]["label2"],
-            "label3": self.dataset["EN"]["label3"] + self.dataset["ES"]["label3"],
-            "language": ["EN"] * len(self.dataset["EN"]["id"]) + ["ES"] * len(self.dataset["ES"]["id"]),
+                    self.dataset[lang]['id'].append(entryid)
+                    self.dataset[lang]['text'].append(entry["tweet"])
 
-        }
+                    if f"labels_{self.task}_1" in entry:
+                        
+                        label1 = entry[f"labels_{self.task}_1"]
+                        label2 = entry[f"labels_{self.task}_2"]
+                        label3 = entry[f"labels_{self.task}_3"]
 
-        self.dataframe = pd.DataFrame(allData, columns=["id", "text", "label1", "label2", "label3", "language"], index=None)
+                        label1 = self.__hardlabeling1(label1)
+                        label2 = self.__hardlabeling2(label2)
+                        label3 = self.__hardlabeling3(label3)
+                        
+                        self.dataset[lang]["label1"].append(label1)
+                        self.dataset[lang]["label2"].append(label2)
+                        self.dataset[lang]["label3"].append(label3)
+
+            assert len(splits) == 1
+            split = list(splits)
+            allData= {
+                "id": self.dataset["EN"]["id"] + self.dataset["ES"]["id"],
+                "text": self.dataset["EN"]["text"] + self.dataset["ES"]["text"],
+                "label1": self.dataset["EN"]["label1"] + self.dataset["ES"]["label1"],
+                "label2": self.dataset["EN"]["label2"] + self.dataset["ES"]["label2"],
+                "label3": self.dataset["EN"]["label3"] + self.dataset["ES"]["label3"],
+                "language": ["EN"] * len(self.dataset["EN"]["id"]) + ["ES"] * len(self.dataset["ES"]["id"]),
+
+            }
+
+            self.dataframe = pd.DataFrame(allData, columns=["id", "text", "label1", "label2", "label3", "language"], index=None)
 
 
     def __preprocess(self, text, re):
@@ -101,46 +134,75 @@ class EXISTReader:
 
 
     def get(self, lang="EN", subtask="1", regular_exp = None, preprocess: bool = False):
-        data=None
+        if self.is_test:
+            data=None
 
-        if preprocess and regular_exp is not None:
+            if preprocess and regular_exp is not None:
 
-            df_preprocessed = self.dataframe.copy()
-            df_preprocessed["text"] = df_preprocessed["text"].apply(lambda x: self.__preprocess(x, regular_exp))
-            if subtask == "1":
+                df_preprocessed = self.dataframe.copy()
+                df_preprocessed["text"] = df_preprocessed["text"].apply(lambda x: self.__preprocess(x, regular_exp))
                 data = df_preprocessed[df_preprocessed["language"] == lang.upper()]
-                data = data[data["label1"].isin(["YES","NO"])]
-                return data["id"], data["text"], data["label1"]
+                return data["id"], data["text"]
 
-            if subtask == "2":
-                data= df_preprocessed[df_preprocessed["language"] == lang.upper()]
-                data = data[data["label1"].isin(["YES","NO"])]
-                data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
-                return data["id"], data["text"], data["label2"]
+            else:
+                if subtask == "1":
+                    data = self.dataframe[self.dataframe["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    return data["id"], data["text"], data["label1"]
 
-            if subtask == "3":
-                data= df_preprocessed[df_preprocessed["language"] == lang.upper()]
-                data = data[data["label1"].isin(["YES","NO"])]
-                data = data[data["label3"] != 'AMBIGUOUS']
-                return data["id"], data["text"], data["label3"]
+                if subtask == "2":
+                    data= self.dataframe[self.dataframe["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
+                    return data["id"], data["text"], data["label2"]
+
+                if subtask == "3":
+                    data= self.dataframe[self.dataframe["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    data = data[data["label3"] != 'AMBIGUOUS']
+                    return data["id"], data["text"], data["label3"]
 
         else:
-            if subtask == "1":
-                data = self.dataframe[self.dataframe["language"] == lang.upper()]
-                data = data[data["label1"].isin(["YES","NO"])]
-                return data["id"], data["text"], data["label1"]
+            data=None
 
-            if subtask == "2":
-                data= self.dataframe[self.dataframe["language"] == lang.upper()]
-                data = data[data["label1"].isin(["YES","NO"])]
-                data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
-                return data["id"], data["text"], data["label2"]
+            if preprocess and regular_exp is not None:
 
-            if subtask == "3":
-                data= self.dataframe[self.dataframe["language"] == lang.upper()]
-                data = data[data["label1"].isin(["YES","NO"])]
-                data = data[data["label3"] != 'AMBIGUOUS']
-                return data["id"], data["text"], data["label3"]
+                df_preprocessed = self.dataframe.copy()
+                df_preprocessed["text"] = df_preprocessed["text"].apply(lambda x: self.__preprocess(x, regular_exp))
+                if subtask == "1":
+                    data = df_preprocessed[df_preprocessed["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    return data["id"], data["text"], data["label1"]
+
+                if subtask == "2":
+                    data= df_preprocessed[df_preprocessed["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
+                    return data["id"], data["text"], data["label2"]
+
+                if subtask == "3":
+                    data= df_preprocessed[df_preprocessed["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    data = data[data["label3"] != 'AMBIGUOUS']
+                    return data["id"], data["text"], data["label3"]
+
+            else:
+                if subtask == "1":
+                    data = self.dataframe[self.dataframe["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    return data["id"], data["text"], data["label1"]
+
+                if subtask == "2":
+                    data= self.dataframe[self.dataframe["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
+                    return data["id"], data["text"], data["label2"]
+
+                if subtask == "3":
+                    data= self.dataframe[self.dataframe["language"] == lang.upper()]
+                    data = data[data["label1"].isin(["YES","NO"])]
+                    data = data[data["label3"] != 'AMBIGUOUS']
+                    return data["id"], data["text"], data["label3"]
 
 
 
