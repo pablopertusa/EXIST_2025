@@ -2,14 +2,18 @@ import json
 import polars as pl
 import os
 
-def create_submision_file(team_name: str, task: int, evaluation_context: str, run_id: str, subtask: int, predictions_path: str, 
+def create_submision_file(team_name: str, task: int, evaluation_context: str, run_id: str, subtask: int, predictions_folder: str, 
                           submision_folder: str) -> bool:
     """
     Creates the folder with the predictions according to the guidelines.
     """
     try:
         if exists_submision_folder(team_name):
-            predictions = pl.read_csv(predictions_path)
+            predictions_english_path = predictions_folder + "/" + f"sexism_predictions_task{subtask}_english.csv"
+            predictions_english = pl.read_csv(predictions_english_path)
+            predictions_spanish_path = predictions_folder + "/" + f"sexism_predictions_task{subtask}_spanish.csv"
+            predictions_spanish = pl.read_csv(predictions_spanish_path)
+            predictions = pl.concat([predictions_spanish, predictions_english], how="vertical").sort(by="id")
             output = []
             for row in predictions.iter_rows(named=True):
                 aux = {}
