@@ -147,20 +147,15 @@ class EXISTReader:
             else:
                 if subtask == "1":
                     data = self.dataframe[self.dataframe["language"] == lang.upper()]
-                    data = data[data["label1"].isin(["YES","NO"])]
-                    return data["id"], data["text"], data["label1"]
+                    return data["id"], data["text"]
 
                 if subtask == "2":
                     data= self.dataframe[self.dataframe["language"] == lang.upper()]
-                    data = data[data["label1"].isin(["YES","NO"])]
-                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
-                    return data["id"], data["text"], data["label2"]
+                    return data["id"], data["text"]
 
                 if subtask == "3":
                     data= self.dataframe[self.dataframe["language"] == lang.upper()]
-                    data = data[data["label1"].isin(["YES","NO"])]
-                    data = data[data["label3"] != 'AMBIGUOUS']
-                    return data["id"], data["text"], data["label3"]
+                    return data["id"], data["text"]
 
         else:
             data=None
@@ -177,7 +172,8 @@ class EXISTReader:
                 if subtask == "2":
                     data= df_preprocessed[df_preprocessed["language"] == lang.upper()]
                     data = data[data["label1"].isin(["YES","NO"])]
-                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
+                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT', '-'])]
+                    data["label2"] = data["label2"].map(lambda x: "NO" if x == "-" else x) # Mapeamos el "-" a NO
                     return data["id"], data["text"], data["label2"]
 
                 if subtask == "3":
@@ -195,7 +191,8 @@ class EXISTReader:
                 if subtask == "2":
                     data= self.dataframe[self.dataframe["language"] == lang.upper()]
                     data = data[data["label1"].isin(["YES","NO"])]
-                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT'])]
+                    data = data[data["label2"].isin(['JUDGEMENTAL','REPORTED', 'DIRECT', '-'])]
+                    data["label2"] = data["label2"].map(lambda x: "NO" if x == "-" else x) # Mapeamos el "-" a NO
                     return data["id"], data["text"], data["label2"]
 
                 if subtask == "3":
