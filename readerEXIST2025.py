@@ -28,7 +28,8 @@ class EXISTReader:
         for anno in annotations: unionAnnotations+=anno
         unionAnnotations = list(set(unionAnnotations))
         unionAnnotations.sort()
-        if "-" in unionAnnotations: unionAnnotations.remove("-")
+        # Para no quitar los que son "NO"
+        #if "-" in unionAnnotations: unionAnnotations.remove("-")
         if "UNKNOWN" in unionAnnotations:  unionAnnotations.remove("UNKNOWN")
         if len(unionAnnotations) == 0: return "AMBIGUOUS"
         return unionAnnotations
@@ -131,6 +132,16 @@ class EXISTReader:
     def __preprocess(self, text, re):
         preprocessed = re.sub("", text).lower().strip()
         return preprocessed
+    
+    def __maptoNO(self, l):
+        aux = []
+        for e in l:
+            if e == "-":
+                aux.append("NO")
+            else:
+                aux.append(e)
+        return aux
+
 
 
     def get(self, lang="EN", subtask="1", regular_exp = None, preprocess: bool = False):
@@ -179,6 +190,7 @@ class EXISTReader:
                 if subtask == "3":
                     data= df_preprocessed[df_preprocessed["language"] == lang.upper()]
                     data = data[data["label1"].isin(["YES","NO"])]
+                    data["label3"] = data["label3"].map(lambda x: self.__maptoNO(x)) # Mapeamos el "-" a NO
                     data = data[data["label3"] != 'AMBIGUOUS']
                     return data["id"], data["text"], data["label3"]
 
@@ -198,6 +210,7 @@ class EXISTReader:
                 if subtask == "3":
                     data= self.dataframe[self.dataframe["language"] == lang.upper()]
                     data = data[data["label1"].isin(["YES","NO"])]
+                    data["label3"] = data["label3"].map(lambda x: self.__maptoNO(x)) # Mapeamos el "-" a NO
                     data = data[data["label3"] != 'AMBIGUOUS']
                     return data["id"], data["text"], data["label3"]
 
