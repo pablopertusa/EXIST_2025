@@ -43,7 +43,10 @@ def create_submision_file(team_name: str, task: int, evaluation_context: str, ru
                     aux = {}
                     aux["test_case"] = "EXIST2025"
                     aux["id"] = str(row["id"])
-                    aux["value"] = row["label"]
+                    if subtask == 3:
+                        aux["value"] = json.loads(formatear_string_para_json(row["label"]))
+                    else:
+                        aux["value"] = row["label"]
                     output.append(aux)
 
             elif evaluation_context == "soft":
